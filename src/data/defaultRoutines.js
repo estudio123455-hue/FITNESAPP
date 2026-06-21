@@ -1,5 +1,8 @@
 let uid = 0
-const id = (prefix) => `${prefix}-${(uid += 1)}`
+// Timestamp + counter, not just a counter: state now persists across reloads,
+// so a counter restarting at 0 every session would collide with ids already
+// saved in localStorage from a previous session.
+const id = (prefix) => `${prefix}-${Date.now().toString(36)}-${(uid += 1)}`
 
 export const createExercise = ({ name, sets, reps, restSeconds, unit = 'reps' }) => ({
   id: id('ex'),

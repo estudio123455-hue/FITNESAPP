@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, RotateCcw, Plus, Minus } from 'lucide-react'
 import ScreenHeader from '../components/ScreenHeader'
 import { formatClock } from '../utils/format'
+import { vibrate } from '../utils/audio'
+import useWakeLock from '../hooks/useWakeLock'
 
 const PRESETS = [
   { label: 'Tabata', workSeconds: 20, restSeconds: 10, rounds: 8, mode: 'interval' },
@@ -50,10 +52,6 @@ function useBeeper() {
   }
 }
 
-function vibrate(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern)
-}
-
 export default function TimerScreen() {
   const [config, setConfig] = useState({ workSeconds: 30, restSeconds: 15, rounds: 8, mode: 'interval' })
   const [phase, setPhase] = useState('idle') // idle | work | rest | done
@@ -61,6 +59,15 @@ export default function TimerScreen() {
   const [secondsLeft, setSecondsLeft] = useState(30)
   const [running, setRunning] = useState(false)
   const beep = useBeeper()
+  const wakeLock = useWakeLock()
+
+  useEffect(() => {
+    if (running) {
+      wakeLock.acquire()
+    } else {
+      wakeLock.release()
+    }
+  }, [running])
 
   // Pure countdown: the only state change here is a deterministic decrement,
   // so it stays correct even though StrictMode double-invokes the updater.
@@ -92,6 +99,7 @@ export default function TimerScreen() {
           setPhase('done')
           return
         }
+        vibrate(100)
         beep.transition()
         if (config.restSeconds > 0) {
           setPhase('rest')
@@ -103,6 +111,7 @@ export default function TimerScreen() {
         return
       }
 
+      vibrate(100)
       beep.transition()
       setRound((r) => r + 1)
       setPhase('work')

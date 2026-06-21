@@ -3,6 +3,8 @@ import { Play, Check, X, Plus, Minus, SkipForward, Flag, Zap } from 'lucide-reac
 import { useApp } from '../context/AppContext'
 import ScreenHeader from '../components/ScreenHeader'
 import { formatClock, formatDuration } from '../utils/format'
+import { beep, vibrate } from '../utils/audio'
+import useWakeLock from '../hooks/useWakeLock'
 
 export default function TrainScreen() {
   const { state } = useApp()
@@ -113,6 +115,11 @@ function ActiveWorkout() {
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [addingExercise, setAddingExercise] = useState(false)
   const [newExerciseName, setNewExerciseName] = useState('')
+  const wakeLock = useWakeLock()
+
+  useEffect(() => {
+    wakeLock.acquire()
+  }, [])
 
   useEffect(() => {
     const start = new Date(workout.startedAt).getTime()
@@ -125,9 +132,16 @@ function ActiveWorkout() {
   useEffect(() => {
     if (!rest) return
     const t = setTimeout(() => {
+      if (rest.secondsLeft <= 4 && rest.secondsLeft > 1) {
+        beep(880, 0.08)
+      }
       setRest((r) => {
         if (!r) return r
-        if (r.secondsLeft <= 1) return null
+        if (r.secondsLeft <= 1) {
+          beep(660, 0.15)
+          vibrate([200, 80, 200])
+          return null
+        }
         return { ...r, secondsLeft: r.secondsLeft - 1 }
       })
     }, 1000)
